@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: springboot-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /home/hammad/springboot-data   # folder on your host machine
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: springboot-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: springboot-app
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+    spec:
+      containers:
+      - name: springboot-container
+        image: my-java-app:latest
+        imagePullPolicy: Never
+        ports:
+          - containerPort: 8080
+        env:
+          - name: GREETING_MESSAGE
+            valueFrom:
+              configMapKeyRef:
+                name: springboot-config
+                key: GREETING_MESSAGE
+          - name: DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: springboot-secret
+                key: DB_USERNAME
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: springboot-secret
+                key: DB_PASSWORD
+        volumeMounts:
+          - name: springboot-storage
+            mountPath: /app/data   # path inside the container
+      volumes:
+        - name: springboot-storage
+          persistentVolumeClaim:
+            claimName: springboot-pvc
+

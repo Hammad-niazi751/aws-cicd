@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: springboot-config
+data:
+  GREETING_MESSAGE: "Hello from ConfigMap!"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: springboot-secret
+type: Opaque
+data:
+  DB_USERNAME: bXl1c2Vy   # base64 of "myuser"
+  DB_PASSWORD: bXlwYXNz   # base64 of "mypass"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: springboot-app
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+    spec:
+      containers:
+      - name: springboot-container
+        image: my-java-app:latest
+        imagePullPolicy: Never   # Important for Kind local image
+        ports:
+        - containerPort: 8080
+        env:
+        # ConfigMap environment variable
+        - name: GREETING_MESSAGE
+          valueFrom:
+            configMapKeyRef:
+              name: springboot-config
+              key: GREETING_MESSAGE
+        # Secret environment variables
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: springboot-secret
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: springboot-secret
+              key: DB_PASSWORD
+
+
+
